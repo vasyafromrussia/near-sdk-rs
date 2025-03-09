@@ -2,17 +2,8 @@ use borsh::BorshSerialize;
 
 use crate::env;
 
-mod private {
-    /// Seal `ToKey` implementations to limit usage to the builtin implementations
-    pub trait Sealed {}
-
-    impl Sealed for super::Sha256 {}
-    impl Sealed for super::Keccak256 {}
-    impl Sealed for super::Identity {}
-}
-
 /// Trait used to generate keys to store data based on a serializable structure.
-pub trait ToKey: self::private::Sealed {
+pub trait ToKey {
     /// Output type for the generated lookup key.
     type KeyType: AsRef<[u8]>;
 

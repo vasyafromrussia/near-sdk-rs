@@ -1,0 +1,7 @@
+[toolchain]
+channel = "nightly"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown"]
+
+[unstable]
+raw-ref-op = true 
