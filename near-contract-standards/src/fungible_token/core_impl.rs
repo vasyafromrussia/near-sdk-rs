@@ -2,15 +2,15 @@ use crate::fungible_token::core::FungibleTokenCore;
 use crate::fungible_token::events::{FtBurn, FtTransfer};
 use crate::fungible_token::receiver::ext_ft_receiver;
 use crate::fungible_token::resolver::{ext_ft_resolver, FungibleTokenResolver};
-use near_sdk::collections::LookupMap;
 use near_sdk::json_types::U128;
+use near_sdk::store::LookupMap;
 use near_sdk::{
     assert_one_yocto, env, log, near, require, AccountId, Gas, IntoStorageKey, PromiseOrValue,
     PromiseResult, StorageUsage,
 };
 
 const GAS_FOR_RESOLVE_TRANSFER: Gas = Gas::from_tgas(5);
-const GAS_FOR_FT_TRANSFER_CALL: Gas = Gas::from_tgas(30);
+const GAS_FOR_FT_TRANSFER_CALL: Gas = Gas::from_tgas(25);
 
 const ERR_TOTAL_SUPPLY_OVERFLOW: &str = "Total supply overflow";
 
@@ -50,15 +50,15 @@ impl FungibleToken {
 
     fn measure_account_storage_usage(&mut self) {
         let initial_storage_usage = env::storage_usage();
-        let tmp_account_id = "a".repeat(64).parse().unwrap();
-        self.accounts.insert(&tmp_account_id, &0u128);
+        let tmp_account_id: AccountId = "a".repeat(64).parse().unwrap();
+        self.accounts.insert(tmp_account_id.clone(), 0);
         self.account_storage_usage = env::storage_usage() - initial_storage_usage;
         self.accounts.remove(&tmp_account_id);
     }
 
     pub fn internal_unwrap_balance_of(&self, account_id: &AccountId) -> Balance {
         match self.accounts.get(account_id) {
-            Some(balance) => balance,
+            Some(balance) => *balance,
             None => {
                 env::panic_str(format!("The account {} is not registered", &account_id).as_str())
             }
@@ -68,7 +68,7 @@ impl FungibleToken {
     pub fn internal_deposit(&mut self, account_id: &AccountId, amount: Balance) {
         let balance = self.internal_unwrap_balance_of(account_id);
         if let Some(new_balance) = balance.checked_add(amount) {
-            self.accounts.insert(account_id, &new_balance);
+            self.accounts.insert(account_id.clone(), new_balance);
             self.total_supply = self
                 .total_supply
                 .checked_add(amount)
@@ -81,7 +81,7 @@ impl FungibleToken {
     pub fn internal_withdraw(&mut self, account_id: &AccountId, amount: Balance) {
         let balance = self.internal_unwrap_balance_of(account_id);
         if let Some(new_balance) = balance.checked_sub(amount) {
-            self.accounts.insert(account_id, &new_balance);
+            self.accounts.insert(account_id.clone(), new_balance);
             self.total_supply = self
                 .total_supply
                 .checked_sub(amount)
@@ -112,7 +112,7 @@ impl FungibleToken {
     }
 
     pub fn internal_register_account(&mut self, account_id: &AccountId) {
-        if self.accounts.insert(account_id, &0).is_some() {
+        if self.accounts.insert(account_id.clone(), 0).is_some() {
             env::panic_str("The account is already registered");
         }
     }
@@ -158,7 +158,7 @@ impl FungibleTokenCore for FungibleToken {
     }
 
     fn ft_balance_of(&self, account_id: AccountId) -> U128 {
-        self.accounts.get(&account_id).unwrap_or(0).into()
+        self.accounts.get(&account_id).copied().unwrap_or(0).into()
     }
 }
 
@@ -187,18 +187,18 @@ impl FungibleToken {
         };
 
         if unused_amount > 0 {
-            let receiver_balance = self.accounts.get(&receiver_id).unwrap_or(0);
+            let receiver_balance = self.accounts.get(&receiver_id).copied().unwrap_or(0);
             if receiver_balance > 0 {
                 let refund_amount = std::cmp::min(receiver_balance, unused_amount);
                 if let Some(new_receiver_balance) = receiver_balance.checked_sub(refund_amount) {
-                    self.accounts.insert(&receiver_id, &new_receiver_balance);
+                    self.accounts.insert(receiver_id.clone(), new_receiver_balance);
                 } else {
                     env::panic_str("The receiver account doesn't have enough balance");
                 }
 
-                if let Some(sender_balance) = self.accounts.get(sender_id) {
+                if let Some(sender_balance) = self.accounts.get(sender_id).copied() {
                     if let Some(new_sender_balance) = sender_balance.checked_add(refund_amount) {
-                        self.accounts.insert(sender_id, &new_sender_balance);
+                        self.accounts.insert(sender_id.clone(), new_sender_balance);
                     } else {
                         env::panic_str("Sender balance overflow");
                     }

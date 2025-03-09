@@ -12,7 +12,7 @@ impl FungibleToken {
         assert_one_yocto();
         let account_id = env::predecessor_account_id();
         let force = force.unwrap_or(false);
-        if let Some(balance) = self.accounts.get(&account_id) {
+        if let Some(balance) = self.accounts.get(&account_id).copied() {
             if balance == 0 || force {
                 self.accounts.remove(&account_id);
                 self.total_supply -= balance;
