@@ -41,13 +41,16 @@ where
     pub account_storage_usage: StorageUsage,
 }
 
-impl FungibleToken {
+impl<H: ToKey> FungibleToken<H> {
     pub fn new<S>(prefix: S) -> Self
     where
         S: IntoStorageKey,
     {
-        let mut this =
-            Self { accounts: LookupMap::new(prefix), total_supply: 0, account_storage_usage: 0 };
+        let mut this = Self {
+            accounts: LookupMap::<AccountId, Balance, H>::with_hasher(prefix),
+            total_supply: 0,
+            account_storage_usage: 0,
+        };
         this.measure_account_storage_usage();
         this
     }
