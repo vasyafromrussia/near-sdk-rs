@@ -3,6 +3,7 @@ use crate::fungible_token::events::{FtBurn, FtTransfer};
 use crate::fungible_token::receiver::ext_ft_receiver;
 use crate::fungible_token::resolver::{ext_ft_resolver, FungibleTokenResolver};
 use near_sdk::json_types::U128;
+use near_sdk::store::key::{Identity, ToKey};
 use near_sdk::store::LookupMap;
 use near_sdk::{
     assert_one_yocto, env, log, near, require, AccountId, Gas, IntoStorageKey, PromiseOrValue,
@@ -26,9 +27,12 @@ pub type Balance = u128;
 ///
 /// For example usage, see examples/fungible-token/src/lib.rs.
 #[near]
-pub struct FungibleToken {
+pub struct FungibleToken<H = Identity>
+where
+    H: ToKey,
+{
     /// AccountID -> Account balance.
-    pub accounts: LookupMap<AccountId, Balance>,
+    pub accounts: LookupMap<AccountId, Balance, H>,
 
     /// Total supply of the all token.
     pub total_supply: Balance,
