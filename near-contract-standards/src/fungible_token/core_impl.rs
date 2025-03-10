@@ -125,7 +125,7 @@ impl<H: ToKey> FungibleToken<H> {
     }
 }
 
-impl FungibleTokenCore for FungibleToken {
+impl<H: ToKey> FungibleTokenCore for FungibleToken<H> {
     fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
         assert_one_yocto();
         let sender_id = env::predecessor_account_id();
@@ -169,7 +169,7 @@ impl FungibleTokenCore for FungibleToken {
     }
 }
 
-impl FungibleToken {
+impl<H: ToKey> FungibleToken<H> {
     /// Internal method that returns the amount of burned tokens in a corner case when the sender
     /// has deleted (unregistered) their account while the `ft_transfer_call` was still in flight.
     /// Returns (Used token amount, Burned token amount)

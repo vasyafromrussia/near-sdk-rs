@@ -1,8 +1,9 @@
 use crate::fungible_token::{Balance, FungibleToken};
 use crate::storage_management::{StorageBalance, StorageBalanceBounds, StorageManagement};
+use near_sdk::store::key::ToKey;
 use near_sdk::{assert_one_yocto, env, log, AccountId, NearToken, Promise};
 
-impl FungibleToken {
+impl<H: ToKey> FungibleToken<H> {
     /// Internal method that returns the Account ID and the balance in case the account was
     /// unregistered.
     pub fn internal_storage_unregister(
@@ -43,7 +44,7 @@ impl FungibleToken {
     }
 }
 
-impl StorageManagement for FungibleToken {
+impl<H: ToKey> StorageManagement for FungibleToken<H> {
     // `registration_only` doesn't affect the implementation for vanilla fungible token.
     #[allow(unused_variables)]
     fn storage_deposit(
